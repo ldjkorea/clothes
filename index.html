@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#f3ede7" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<title>옷장 정리</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  :root{
+    --paper:#f4efe9;        /* warm linen background */
+    --paper-2:#efe8e1;
+    --card:#fffdfb;
+    --ink:#3b352f;          /* warm charcoal */
+    --ink-soft:#7c736a;
+    --ink-faint:#a59c93;
+    --stitch:#d9cfc4;       /* taupe stitch line */
+    --line:#e7ded5;
+    --shadow:18,15,12;
+
+    /* category pastels: [accent, soft-fill] */
+    --c-top:#a7c4df;    --c-top-s:#e3eef7;
+    --c-bottom:#b3b4e0; --c-bottom-s:#e8e8f7;
+    --c-outer:#c6b1da;  --c-outer-s:#efe7f6;
+    --c-under:#ecb4c2;  --c-under-s:#fbe9ee;
+    --c-sock:#a4cbb2;   --c-sock-s:#e4f1e9;
+    --c-shoe:#eec2a4;   --c-shoe-s:#fbede2;
+    --c-etc:#c7beb4;    --c-etc-s:#efe9e2;
+
+    --mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+      "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    background:
+      radial-gradient(120% 60% at 50% -10%, #f8f3ee 0%, var(--paper) 55%, var(--paper-2) 100%) fixed;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+    padding-bottom:calc(86px + env(safe-area-inset-bottom));
+  }
+  button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+  input,select,textarea{font-family:inherit; color:inherit;}
+  :focus-visible{outline:2.5px solid #8a6fb0; outline-offset:2px; border-radius:8px;}
+
+  /* ---------- header ---------- */
+  header.app{
+    padding:calc(22px + env(safe-area-inset-top)) 22px 14px;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+  }
+  .brand{display:flex; align-items:center; gap:11px;}
+  .brand .mark{
+    width:38px; height:38px; border-radius:12px;
+    background:linear-gradient(145deg,#fff,#f0e8e0);
+    border:1px solid var(--line);
+    display:grid; place-items:center;
+    box-shadow:0 4px 14px rgba(var(--shadow),.10);
+  }
+  .brand h1{font-size:19px; font-weight:800; letter-spacing:-.02em; margin:0;}
+  .brand .sub{font-size:11.5px; color:var(--ink-faint); letter-spacing:.16em; text-transform:uppercase; font-family:var(--mono);}
+
+  /* ---------- views ---------- */
+  main{padding:0 16px; max-width:680px; margin:0 auto;}
+  .view{display:none; animation:rise .34s cubic-bezier(.2,.7,.25,1);}
+  .view.active{display:block;}
+  @keyframes rise{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+
+  .view-title{font-size:15px; font-weight:700; margin:6px 4px 12px; color:var(--ink-soft);}
+
+  /* ---------- compose (정리) ---------- */
+  .compose-card{
+    background:var(--card); border:1px solid var(--line); border-radius:22px;
+    padding:18px; box-shadow:0 10px 30px rgba(var(--shadow),.07);
+  }
+  .compose-card .hd{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .compose-card .hd h2{font-size:16.5px; font-weight:800; margin:0; letter-spacing:-.01em;}
+  .compose-card .hd .cnt{font-size:12px; color:var(--ink-faint); font-family:var(--mono);}
+  textarea#raw{
+    width:100%; min-height:168px; resize:vertical;
+    border:1.5px solid var(--line); border-radius:16px; background:#fffaf5;
+    padding:14px 14px; font-size:15.5px; line-height:1.7; color:var(--ink);
+  }
+  textarea#raw::placeholder{color:#bcb2a8;}
+  textarea#raw:focus{border-color:var(--c-outer); background:#fff;}
+  .compose-actions{display:flex; gap:10px; margin-top:13px;}
+  .btn{
+    border-radius:14px; font-weight:700; font-size:15px; padding:13px 16px;
+    display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    transition:transform .12s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-primary{
+    flex:1; color:#fff;
+    background:linear-gradient(135deg,#b9a0d6,#9f86c6);
+    box-shadow:0 8px 20px rgba(140,110,180,.32);
+  }
+  .btn-ghost{
+    background:#f3ede7; color:var(--ink-soft); border:1px solid var(--line);
+  }
+  .tips{margin-top:14px; border-top:1px dashed var(--stitch); padding-top:12px;}
+  .tips summary{font-size:13px; font-weight:600; color:var(--ink-soft); cursor:pointer; list-style:none;}
+  .tips summary::-webkit-details-marker{display:none;}
+  .tips summary::before{content:"＋ "; color:var(--c-outer); font-weight:800;}
+  .tips[open] summary::before{content:"− ";}
+  .tips .body{font-size:13px; color:var(--ink-soft); margin-top:9px; line-height:1.65;}
+  .tips code{
+    font-family:var(--mono); font-size:12px; background:#f3ede7;
+    padding:2px 6px; border-radius:6px; color:#7a5fa0;
+  }
+  .ex-line{display:block; margin:3px 0; color:var(--ink-faint); font-family:var(--mono); font-size:12px;}
+
+  /* ---------- inventory (옷장) ---------- */
+  .summary-strip{
+    display:flex; gap:10px; margin:2px 2px 14px; overflow-x:auto; padding-bottom:2px;
+    scrollbar-width:none;
+  }
+  .summary-strip::-webkit-scrollbar{display:none;}
+  .stat-pill{
+    flex:0 0 auto; background:var(--card); border:1px solid var(--line);
+    border-radius:14px; padding:9px 14px; display:flex; flex-direction:column; gap:1px;
+    box-shadow:0 4px 12px rgba(var(--shadow),.05);
+  }
+  .stat-pill b{font-size:19px; font-weight:800; letter-spacing:-.02em;}
+  .stat-pill span{font-size:11px; color:var(--ink-faint); font-family:var(--mono); letter-spacing:.04em;}
+
+  .toolbar{display:flex; gap:9px; margin-bottom:13px;}
+  .search{
+    flex:1; display:flex; align-items:center; gap:8px; background:var(--card);
+    border:1.5px solid var(--line); border-radius:13px; padding:0 12px;
+  }
+  .search input{flex:1; border:none; background:none; padding:11px 0; font-size:14.5px; outline:none;}
+  .search svg{flex:0 0 auto; opacity:.4;}
+  .add-btn{
+    flex:0 0 auto; width:46px; border-radius:13px; color:#fff;
+    background:linear-gradient(135deg,#b9a0d6,#9f86c6);
+    box-shadow:0 6px 16px rgba(140,110,180,.3); font-size:22px; font-weight:300; line-height:1;
+  }
+
+  .filter-row{display:flex; gap:7px; overflow-x:auto; margin-bottom:16px; padding-bottom:2px; scrollbar-width:none;}
+  .filter-row::-webkit-scrollbar{display:none;}
+  .chip{
+    flex:0 0 auto; font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:999px;
+    background:var(--card); border:1.5px solid var(--line); color:var(--ink-soft);
+    transition:all .16s ease;
+  }
+  .chip[data-on="1"]{color:#fff; border-color:transparent;}
+  .chip .dot{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; vertical-align:1px;}
+
+  .cat-section{margin-bottom:26px;}
+  .cat-head{display:flex; align-items:center; gap:9px; margin:0 4px 12px;}
+  .cat-head .dot{width:11px; height:11px; border-radius:50%;}
+  .cat-head h3{font-size:15.5px; font-weight:800; margin:0; letter-spacing:-.01em;}
+  .cat-head .ct{font-size:12px; color:var(--ink-faint); font-family:var(--mono); margin-left:auto;}
+  .cat-head .rule{height:1px; background:var(--line); flex:1; max-width:30px;}
+
+  .label-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
+  @media (max-width:430px){ .label-grid{grid-template-columns:1fr;} }
+
+  /* ----- THE SIGNATURE: care-label card ----- */
+  .tag{
+    position:relative; background:var(--card); border-radius:13px;
+    padding:15px 15px 13px 19px; cursor:pointer; overflow:hidden;
+    border:1px solid var(--line);
+    box-shadow:0 6px 18px rgba(var(--shadow),.07);
+    transition:transform .15s ease, box-shadow .2s ease;
+  }
+  .tag:hover{transform:translateY(-2px); box-shadow:0 12px 26px rgba(var(--shadow),.12);}
+  .tag:active{transform:translateY(0);}
+  /* colored spine + stitch */
+  .tag::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:7px;
+    background:var(--accent);
+  }
+  .tag::after{
+    content:""; position:absolute; left:11px; top:9px; bottom:9px; width:0;
+    border-left:1.5px dashed var(--stitch);
+  }
+  .tag .hole{
+    position:absolute; top:11px; right:12px; width:11px; height:11px;
+    border-radius:50%; background:var(--paper);
+    box-shadow:inset 0 0 0 1.5px var(--stitch);
+  }
+  .tag .nm{font-size:15.5px; font-weight:700; letter-spacing:-.01em; padding-right:18px; line-height:1.3;}
+  .tag .meta{
+    font-family:var(--mono); font-size:11.5px; color:var(--ink-soft);
+    margin-top:7px; display:flex; flex-wrap:wrap; gap:5px 8px; align-items:center;
+  }
+  .tag .sz{
+    font-weight:700; color:#fff; background:var(--accent);
+    padding:1px 7px; border-radius:6px; font-size:11px; letter-spacing:.02em;
+  }
+  .tag .qty{color:var(--ink); font-weight:600;}
+  .tag .swatch{display:inline-flex; align-items:center; gap:4px;}
+  .tag .swatch i{width:9px; height:9px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
+  .tag.flagged{border-style:dashed; border-color:var(--c-etc);}
+  .tag .flag{
+    display:inline-block; font-size:10px; color:#b08a4a; background:#fbf2e2;
+    padding:1px 6px; border-radius:5px; font-family:var(--mono); margin-top:6px;
+  }
+
+  /* ---------- stats (통계) ---------- */
+  .stats-card{
+    background:var(--card); border:1px solid var(--line); border-radius:22px;
+    padding:20px; box-shadow:0 10px 30px rgba(var(--shadow),.07); margin-bottom:14px;
+  }
+  .big-num{display:flex; align-items:baseline; gap:8px; margin-bottom:4px;}
+  .big-num b{font-size:42px; font-weight:800; letter-spacing:-.03em;}
+  .big-num span{font-size:13px; color:var(--ink-faint); font-family:var(--mono);}
+  .stat-sub{font-size:13px; color:var(--ink-soft);}
+  .bar-row{display:flex; align-items:center; gap:10px; margin:11px 0;}
+  .bar-row .lbl{flex:0 0 64px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px;}
+  .bar-row .lbl .dot{width:9px; height:9px; border-radius:50%;}
+  .bar-track{flex:1; height:11px; border-radius:99px; background:#efe7df; overflow:hidden;}
+  .bar-fill{height:100%; border-radius:99px; transition:width .6s cubic-bezier(.2,.7,.25,1);}
+  .bar-row .v{flex:0 0 auto; font-size:12px; color:var(--ink-soft); font-family:var(--mono); min-width:26px; text-align:right;}
+
+  /* ---------- empty ---------- */
+  .empty{
+    text-align:center; padding:54px 20px; color:var(--ink-faint);
+  }
+  .empty .ico{font-size:40px; margin-bottom:12px; opacity:.8;}
+  .empty p{font-size:14.5px; margin:0 0 16px; line-height:1.6;}
+  .empty .btn-primary{display:inline-flex; flex:0 0 auto; padding:12px 22px;}
+
+  /* ---------- bottom nav ---------- */
+  nav.tabbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+    display:flex; justify-content:center; pointer-events:none;
+  }
+  nav.tabbar .pill{
+    pointer-events:auto;
+    display:flex; gap:4px; background:rgba(255,253,251,.86);
+    backdrop-filter:saturate(160%) blur(14px); -webkit-backdrop-filter:saturate(160%) blur(14px);
+    border:1px solid var(--line); border-radius:999px; padding:6px;
+    box-shadow:0 12px 34px rgba(var(--shadow),.16);
+  }
+  nav.tabbar button{
+    border-radius:999px; padding:9px 17px; font-size:13.5px; font-weight:700;
+    color:var(--ink-faint); display:flex; flex-direction:column; align-items:center; gap:2px;
+    transition:all .2s ease; min-width:62px;
+  }
+  nav.tabbar button .ic{font-size:17px; line-height:1;}
+  nav.tabbar button[data-on="1"]{
+    color:#fff; background:linear-gradient(135deg,#b9a0d6,#9f86c6);
+    box-shadow:0 6px 16px rgba(140,110,180,.32);
+  }
+
+  /* ---------- sheet / modal ---------- */
+  .backdrop{
+    position:fixed; inset:0; background:rgba(40,34,28,.4); backdrop-filter:blur(3px);
+    z-index:50; opacity:0; pointer-events:none; transition:opacity .25s ease;
+  }
+  .backdrop.show{opacity:1; pointer-events:auto;}
+  .sheet{
+    position:fixed; left:0; right:0; bottom:0; z-index:60;
+    background:var(--card); border-radius:26px 26px 0 0;
+    padding:8px 20px calc(24px + env(safe-area-inset-bottom));
+    max-width:680px; margin:0 auto;
+    transform:translateY(110%); transition:transform .3s cubic-bezier(.2,.8,.2,1);
+    box-shadow:0 -10px 40px rgba(var(--shadow),.2); max-height:92vh; overflow-y:auto;
+  }
+  .sheet.show{transform:translateY(0);}
+  .grab{width:38px; height:4px; border-radius:99px; background:var(--line); margin:8px auto 14px;}
+  .sheet h3{font-size:18px; font-weight:800; margin:0 0 18px; letter-spacing:-.01em;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px; letter-spacing:.02em;}
+  .field input, .field select{
+    width:100%; border:1.5px solid var(--line); border-radius:12px; background:#fffaf5;
+    padding:12px 13px; font-size:15px; outline:none;
+  }
+  .field input:focus, .field select:focus{border-color:var(--c-outer); background:#fff;}
+  .cat-pick{display:flex; gap:7px; flex-wrap:wrap;}
+  .cat-opt{
+    font-size:13px; font-weight:600; padding:8px 13px; border-radius:11px;
+    border:1.5px solid var(--line); background:#fffaf5; color:var(--ink-soft);
+    display:flex; align-items:center; gap:6px;
+  }
+  .cat-opt .dot{width:9px; height:9px; border-radius:50%;}
+  .cat-opt[data-on="1"]{color:var(--ink); border-color:currentColor; background:#fff;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .sheet-actions{display:flex; gap:10px; margin-top:8px;}
+  .btn-save{flex:1; color:#fff; background:linear-gradient(135deg,#b9a0d6,#9f86c6); box-shadow:0 8px 20px rgba(140,110,180,.3);}
+  .btn-del{flex:0 0 auto; padding:13px 18px; color:#c2607a; background:#fbe9ee; font-weight:700; border-radius:14px;}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed; left:50%; bottom:calc(96px + env(safe-area-inset-bottom));
+    transform:translate(-50%, 20px); z-index:80;
+    background:var(--ink); color:#fff; font-size:13.5px; font-weight:600;
+    padding:11px 18px; border-radius:13px; box-shadow:0 10px 30px rgba(0,0,0,.25);
+    opacity:0; pointer-events:none; transition:all .3s cubic-bezier(.2,.8,.2,1);
+    white-space:nowrap;
+  }
+  .toast.show{opacity:1; transform:translate(-50%,0);}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms !important; transition-duration:.01ms !important;}
+  }
+
+  /* ---------- print: clean label sheet ---------- */
+  @media print{
+    body{background:#fff; padding:0;}
+    header.app .brand .sub, nav.tabbar, .toolbar, .filter-row, .summary-strip,
+    #view-compose, #view-stats, .add-btn{display:none !important;}
+    main{max-width:none;}
+    .view{display:none !important;}
+    #view-inventory{display:block !important;}
+    .label-grid{grid-template-columns:repeat(3,1fr); gap:8px;}
+    .tag{box-shadow:none; border:1px solid #ccc; break-inside:avoid; cursor:default;}
+    .tag:hover{transform:none;}
+  }
+</style>
+</head>
+<body>
+  <header class="app">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M9 3.5c0 1.4 1.3 2.3 3 2.3s3-.9 3-2.3" stroke="#9f86c6" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M12 5.8 4.5 9.4c-.6.3-.8 1-.5 1.6l1.2 2.2c.3.5.9.7 1.4.5l1.4-.6V20c0 .6.4 1 1 1h7c.6 0 1-.4 1-1v-6.9l1.4.6c.5.2 1.1 0 1.4-.5l1.2-2.2c.3-.6.1-1.3-.5-1.6L12 5.8Z" stroke="#9f86c6" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <h1>옷장 정리</h1>
+        <div class="sub">my wardrobe</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ====== 정리 ====== -->
+    <section class="view active" id="view-compose">
+      <div class="compose-card">
+        <div class="hd">
+          <h2>옷 적어두기</h2>
+          <span class="cnt" id="raw-count">0줄</span>
+        </div>
+        <textarea id="raw" placeholder="옷을 한 줄에 하나씩, 대충 적어도 돼요.
+
+흰색 면 반팔티 L 3개
+검정 청바지 32 2벌
+나이키 양말 250 5켤레
+베이지 코트 M
+회색 후드티 XL
+유니클로 히트텍 화이트 L 2"></textarea>
+        <div class="compose-actions">
+          <button class="btn btn-primary" id="btn-parse">정리하기</button>
+          <button class="btn btn-ghost" id="btn-clear">지우기</button>
+        </div>
+        <details class="tips">
+          <summary>어떻게 적어요?</summary>
+          <div class="body">
+            한 줄에 옷 하나씩 적으면 <b>색상·사이즈·수량·소재</b>를 알아서 분리하고 카테고리로 나눠요. 순서는 상관없어요.
+            <div style="margin-top:9px;">
+              <span class="ex-line">흰색 면 반팔티 L 3개</span>
+              <span class="ex-line">→ 상의 · 반팔티 · L · 3개 · 흰색 · 면</span>
+            </div>
+            <div style="margin-top:9px;">
+              수량은 <code>3개</code> <code>2벌</code> <code>5켤레</code> 처럼, 사이즈는 <code>L</code> <code>32</code> <code>260</code> 처럼 적으면 돼요. 정리 후에도 항목을 눌러 언제든 고칠 수 있어요.
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ====== 옷장 ====== -->
+    <section class="view" id="view-inventory">
+      <div class="summary-strip" id="summary-strip"></div>
+      <div class="toolbar">
+        <div class="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="search" type="search" placeholder="옷 검색 (이름·색·사이즈)" />
+        </div>
+        <button class="add-btn" id="btn-add" aria-label="직접 추가">+</button>
+      </div>
+      <div class="filter-row" id="filter-row"></div>
+      <div id="inventory-body"></div>
+    </section>
+
+    <!-- ====== 통계 ====== -->
+    <section class="view" id="view-stats">
+      <div id="stats-body"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <div class="pill">
+      <button data-tab="compose" data-on="1"><span class="ic">✎</span>정리</button>
+      <button data-tab="inventory"><span class="ic">🧥</span>옷장</button>
+      <button data-tab="stats"><span class="ic">📊</span>통계</button>
+    </div>
+  </nav>
+
+  <!-- edit / add sheet -->
+  <div class="backdrop" id="backdrop"></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="grab"></div>
+    <h3 id="sheet-title">항목 수정</h3>
+    <div class="field">
+      <label>카테고리</label>
+      <div class="cat-pick" id="cat-pick"></div>
+    </div>
+    <div class="field">
+      <label>이름 (브랜드·종류)</label>
+      <input id="f-name" type="text" placeholder="예: 나이키 반팔티" />
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>사이즈</label>
+        <input id="f-size" type="text" placeholder="L / 32 / 260" />
+      </div>
+      <div class="field">
+        <label>수량</label>
+        <input id="f-qty" type="number" min="1" value="1" />
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>색상</label>
+        <input id="f-color" type="text" placeholder="흰색" />
+      </div>
+      <div class="field">
+        <label>소재</label>
+        <input id="f-material" type="text" placeholder="면" />
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-save" id="btn-save">저장</button>
+      <button class="btn-del" id="btn-delete" style="display:none;">삭제</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+(function(){
+
+  /* ============================================================
+     CATEGORY MODEL
+     ============================================================ */
+  const CATS = {
+    top:    { label:"상의",   accent:"var(--c-top)",    dot:"#a7c4df", order:1 },
+    bottom: { label:"하의",   accent:"var(--c-bottom)", dot:"#b3b4e0", order:2 },
+    outer:  { label:"아우터", accent:"var(--c-outer)",  dot:"#c6b1da", order:3 },
+    under:  { label:"속옷",   accent:"var(--c-under)",  dot:"#ecb4c2", order:4 },
+    sock:   { label:"양말",   accent:"var(--c-sock)",   dot:"#a4cbb2", order:5 },
+    shoe:   { label:"신발",   accent:"var(--c-shoe)",   dot:"#eec2a4", order:6 },
+    etc:    { label:"기타",   accent:"var(--c-etc)",    dot:"#c7beb4", order:7 },
+  };
+  const CAT_ORDER = Object.keys(CATS).sort((a,b)=>CATS[a].order-CATS[b].order);
+
+  // priority order: first matching category wins
+  const CAT_KEYWORDS = [
+    ["shoe",  ["운동화","스니커즈","러닝화","구두","로퍼","부츠","앵클부츠","샌들","슬리퍼","단화","워커","첼시","더비","모카신","뮬","힐","신발","스니커"]],
+    ["outer", ["코트","트렌치","패딩","다운","점퍼","잠바","자켓","재킷","가디건","카디건","바람막이","야상","블레이저","무스탕","후리스","플리스","집업","짚업","베스트","조끼","파카","아노락","바시티","코디건"]],
+    ["under", ["팬티","속옷","브래지어","브라","드로즈","드로어즈","트렁크","러닝","내복","내의","히트텍","이너","슬립","거들","보정","란제리","삼각","사각팬츠","사각팬티","보디수트"]],
+    ["sock",  ["양말","삭스","스타킹","덧신","니삭스","발목양말","수면양말","레그워머","페이크삭스"]],
+    ["bottom",["청바지","데님팬츠","면바지","슬랙스","슬렉스","반바지","숏팬츠","쇼츠","쇼트","치마","스커트","조거","트레이닝바지","트레이닝팬츠","카고","와이드팬츠","레깅스","츄리닝","추리닝","바지","팬츠","진"]],
+    ["top",   ["반팔티","긴팔티","라운드티","폴로티","카라티","티셔츠","맨투맨","후드티","후드","스웨터","니트","셔츠","남방","와이셔츠","블라우스","폴로","피케","헨리넥","브이넥","탱크탑","나시","민소매","슬리브리스","카라","티"]],
+    ["etc",   ["모자","캡","비니","볼캡","버킷햇","가방","백팩","크로스백","토트백","에코백","벨트","장갑","목도리","머플러","스카프","넥타이","마스크","선글라스","안경"]],
+  ];
+
+  /* ---------- dictionaries ---------- */
+  const COLOR_MAP = {
+    "검정":"검정","검은":"검정","블랙":"검정","black":"검정",
+    "흰":"흰색","하양":"흰색","화이트":"흰색","white":"흰색","아이보리":"아이보리","ivory":"아이보리","크림":"크림","cream":"크림",
+    "회":"회색","그레이":"회색","gray":"회색","grey":"회색","차콜":"차콜","멜란지":"멜란지",
+    "네이비":"네이비","navy":"네이비","곤":"네이비",
+    "베이지":"베이지","beige":"베이지","카멜":"카멜","camel":"카멜",
+    "갈":"갈색","브라운":"갈색","brown":"갈색",
+    "카키":"카키","khaki":"카키","올리브":"올리브",
+    "파랑":"파랑","파란":"파랑","블루":"파랑","blue":"파랑","하늘":"하늘색","스카이":"하늘색","sky":"하늘색",
+    "빨강":"빨강","빨간":"빨강","레드":"빨강","red":"빨강","와인":"와인","버건디":"버건디",
+    "분홍":"분홍","핑크":"분홍","pink":"분홍",
+    "노랑":"노랑","노란":"노랑","옐로우":"노랑","yellow":"노랑","머스타드":"머스타드",
+    "초록":"초록","녹색":"초록","그린":"초록","green":"초록","민트":"민트","mint":"민트",
+    "보라":"보라","퍼플":"보라","purple":"보라","라벤더":"라벤더",
+    "주황":"주황","오렌지":"주황","orange":"주황",
+  };
+  const COLOR_SWATCH = {
+    "검정":"#2b2b2b","흰색":"#f3f0ea","아이보리":"#f0e8d6","크림":"#f5ead2",
+    "회색":"#9b9b9b","차콜":"#4a4a4a","멜란지":"#bcbcbc","네이비":"#2a3a5e",
+    "베이지":"#d8c4a4","카멜":"#bb8b5a","갈색":"#7b5230","카키":"#7a7a52","올리브":"#6f7245",
+    "파랑":"#4a78c8","하늘색":"#9ec6ec","빨강":"#cc4d4d","와인":"#7a2e3e","버건디":"#6b2434",
+    "분홍":"#e89bb4","노랑":"#e8c84d","머스타드":"#c89a3a","초록":"#5aa06a","민트":"#9ed8c0",
+    "보라":"#9a78c8","라벤더":"#c4b3e0","주황":"#e0995a",
+  };
+  const COLOR_MOD = ["진","연","다크","라이트","찐","딥","파스텔"];
+  const MATERIAL_MAP = {
+    "면":"면","코튼":"면","cotton":"면","순면":"면",
+    "울":"울","wool":"울","양모":"울","캐시미어":"캐시미어","cashmere":"캐시미어",
+    "린넨":"린넨","리넨":"린넨","linen":"린넨","마":"마",
+    "폴리":"폴리","폴리에스터":"폴리","polyester":"폴리","poly":"폴리",
+    "나일론":"나일론","nylon":"나일론","스판":"스판","스판덱스":"스판",
+    "데님":"데님","denim":"데님","가죽":"가죽","레더":"가죽","leather":"가죽",
+    "실크":"실크","silk":"실크","텐셀":"텐셀","모달":"모달","아크릴":"아크릴",
+  };
+  const QTY_UNITS = ["개","벌","장","켤레","족","쌍","매","점"];
+  const LETTER_SIZES = ["xxxl","xxl","xl","4xl","3xl","2xl","xs","s","m","l","free","프리"];
+  const LETTER_RANK = { xs:0, s:1, m:2, l:3, xl:4, xxl:5, "2xl":5, xxxl:6, "3xl":6, "4xl":7 };
+
+  /* ============================================================
+     PARSER
+     ============================================================ */
+  function categorize(text){
+    const t = text.toLowerCase();
+    for (const [cat, words] of CAT_KEYWORDS){
+      for (const w of words){
+        if (text.indexOf(w) !== -1 || t.indexOf(w.toLowerCase()) !== -1) return cat;
+      }
+    }
+    return "etc";
+  }
+
+  function isLetterSize(tok){
+    return LETTER_SIZES.indexOf(tok.toLowerCase()) !== -1;
+  }
+  function normLetterSize(tok){
+    const t = tok.toLowerCase();
+    if (t === "프리") return "FREE";
+    if (t === "free") return "FREE";
+    return t.toUpperCase();
+  }
+
+  // parse a single raw line -> item object (or null)
+  function parseLine(raw){
+    const line = (raw||"").replace(/^[\s•\-*·\u2022]+/,"").replace(/\s+/g," ").trim();
+    if (!line) return null;
+
+    let tokens = line.split(" ");
+    let qty = null, size = null, color = null, material = null;
+    const numbers = [];          // {tok, val} lone numbers
+    const nameToks = [];
+    let pendingMod = "";
+
+    const consumeUnitNumber = (t)=>{
+      // "3개", "5켤레" etc
+      const m = t.match(/^(\d+)\s*(개|벌|장|켤레|족|쌍|매|점)$/);
+      if (m){ qty = parseInt(m[1],10); return true; }
+      // "x3" "*3" "×3"
+      const mx = t.match(/^[x*×]\s*(\d+)$/i);
+      if (mx){ qty = parseInt(mx[1],10); return true; }
+      return false;
+    };
+
+    for (let i=0;i<tokens.length;i++){
+      let tok = tokens[i];
+      if (!tok) continue;
+
+      // standalone unit following a number e.g. "3" "개"
+      if (QTY_UNITS.indexOf(tok) !== -1 && numbers.length){
+        qty = numbers.pop().val; // last number was the count
+        continue;
+      }
+
+      if (consumeUnitNumber(tok)) continue;
+
+      // letter size
+      if (isLetterSize(tok) && size === null){ size = normLetterSize(tok); continue; }
+
+      // bra-ish size like 75A / 80b
+      const bra = tok.match(/^(\d{2,3})([a-fA-F])$/);
+      if (bra && size === null){ size = bra[1] + bra[2].toUpperCase(); continue; }
+
+      // numeric size like 100 / 32 / 260 / 095호
+      const numTok = tok.match(/^0?(\d{1,3})(호)?$/);
+      if (numTok){
+        numbers.push({ tok, val: parseInt(numTok[1],10) });
+        continue;
+      }
+
+      // color modifier (다크, 연 ...) -> attach to following color
+      if (COLOR_MOD.indexOf(tok) !== -1){ pendingMod = tok; continue; }
+      const modPrefix = COLOR_MOD.find(m=>tok.startsWith(m) && tok.length>m.length);
+
+      // color (strip trailing 색)
+      let cbase = tok.replace(/색$/,"").toLowerCase();
+      let cbaseKr = tok.replace(/색$/,"");
+      let colorHit = COLOR_MAP[cbaseKr] || COLOR_MAP[cbase];
+      if (!colorHit && modPrefix){
+        const rest = tok.slice(modPrefix.length).replace(/색$/,"");
+        colorHit = COLOR_MAP[rest] || COLOR_MAP[rest.toLowerCase()];
+      }
+      if (colorHit && color === null){
+        color = (pendingMod ? pendingMod : (modPrefix||"")) + colorHit;
+        pendingMod = "";
+        continue;
+      }
+
+      // material
+      const mbaseKr = tok;
+      const matHit = MATERIAL_MAP[mbaseKr] || MATERIAL_MAP[tok.toLowerCase()];
+      if (matHit && material === null){ material = matHit; pendingMod=""; continue; }
+
+      // otherwise part of the name
+      if (pendingMod){ nameToks.push(pendingMod); pendingMod=""; }
+      nameToks.push(tok);
+    }
+
+    // resolve lone numbers -> size / qty
+    if (numbers.length){
+      if (qty !== null){
+        if (size === null) size = String(numbers[0].val);
+      } else {
+        if (numbers.length === 1){
+          if (size !== null) qty = numbers[0].val;     // letter size present -> number is qty
+          else size = String(numbers[0].val);          // bare number -> size
+        } else {
+          if (size === null) size = String(numbers[0].val);
+          qty = numbers[numbers.length-1].val;
+        }
+      }
+    }
+
+    let name = nameToks.join(" ").trim();
+    const cat = categorize(line);
+    if (!name){
+      // fall back to the matched category keyword inside the line
+      const kwList = (CAT_KEYWORDS.find(c=>c[0]===cat)||[null,[]])[1];
+      const kw = kwList.find(w=>line.indexOf(w)!==-1);
+      name = kw || CATS[cat].label;
+    }
+
+    return {
+      id: "it_" + Math.random().toString(36).slice(2,9) + Date.now().toString(36),
+      cat, name,
+      color: color || "",
+      size: size || "",
+      material: material || "",
+      qty: qty || 1,
+      createdAt: Date.now(),
+    };
+  }
+
+  function parseInput(text){
+    return (text||"").split(/\r?\n/).map(parseLine).filter(Boolean);
+  }
+
+  /* ---------- size sort ---------- */
+  function sizeRank(size){
+    if (!size) return [3, 0, ""];
+    const s = String(size).toLowerCase();
+    if (s === "free") return [2, 0, ""];
+    if (LETTER_RANK[s] !== undefined) return [0, LETTER_RANK[s], ""];
+    const n = parseInt(s,10);
+    if (!isNaN(n)) return [1, n, ""];
+    return [2, 0, s];
+  }
+  function cmpSize(a,b){
+    const ra = sizeRank(a.size), rb = sizeRank(b.size);
+    for (let i=0;i<3;i++){
+      if (ra[i] < rb[i]) return -1;
+      if (ra[i] > rb[i]) return 1;
+    }
+    return a.name.localeCompare(b.name, "ko");
+  }
+
+  /* ============================================================
+     STATE + STORAGE (localStorage w/ in-memory fallback)
+     ============================================================ */
+  const KEY = "closet.items.v1";
+  const store = (function(){
+    let ok = false, mem = null;
+    try {
+      const k = "__t" + Date.now();
+      localStorage.setItem(k,"1"); localStorage.removeItem(k);
+      ok = true;
+    } catch(e){ ok = false; }
+    return {
+      persistent: ok,
+      load(){
+        if (ok){ try { return JSON.parse(localStorage.getItem(KEY)||"[]"); } catch(e){ return []; } }
+        return mem ? JSON.parse(mem) : [];
+      },
+      save(arr){
+        const s = JSON.stringify(arr);
+        if (ok){ try { localStorage.setItem(KEY, s); } catch(e){ mem = s; } }
+        else { mem = s; }
+      }
+    };
+  })();
+
+  let items = store.load();
+  let filter = "all";
+  let query = "";
+  let editingId = null;
+  let draftCat = "top";
+
+  function save(){ store.save(items); }
+
+  /* ============================================================
+     DOM helpers
+     ============================================================ */
+  const $ = (s)=>document.querySelector(s);
+  const esc = (s)=>String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  /* ---------- tabs ---------- */
+  function showTab(tab){
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    $("#view-"+tab).classList.add("active");
+    document.querySelectorAll("nav.tabbar button").forEach(b=>{
+      b.setAttribute("data-on", b.dataset.tab===tab ? "1" : "0");
+    });
+    if (tab==="inventory") renderInventory();
+    if (tab==="stats") renderStats();
+    try { window.scrollTo({top:0, behavior:"instant"}); } catch(e){}
+  }
+
+  /* ---------- inventory ---------- */
+  function totalPieces(arr){ return arr.reduce((s,i)=>s+(i.qty||1),0); }
+
+  function renderSummary(){
+    const wrap = $("#summary-strip");
+    const lines = items.length, pieces = totalPieces(items);
+    const cats = new Set(items.map(i=>i.cat)).size;
+    wrap.innerHTML =
+      pill(lines,"항목") + pill(pieces,"총 수량") + pill(cats,"카테고리");
+    function pill(n,l){ return `<div class="stat-pill"><b>${n}</b><span>${l}</span></div>`; }
+  }
+
+  function renderFilters(){
+    const row = $("#filter-row");
+    const present = CAT_ORDER.filter(c=>items.some(i=>i.cat===c));
+    let html = `<button class="chip" data-cat="all" data-on="${filter==="all"?1:0}"
+                  style="${filter==="all"?"background:#9f86c6":""}">전체</button>`;
+    present.forEach(c=>{
+      const on = filter===c;
+      html += `<button class="chip" data-cat="${c}" data-on="${on?1:0}"
+        style="${on?`background:${CATS[c].dot}`:""}">
+        <span class="dot" style="background:${CATS[c].dot}"></span>${CATS[c].label}</button>`;
+    });
+    row.innerHTML = html;
+    row.querySelectorAll(".chip").forEach(ch=>{
+      ch.onclick = ()=>{ filter = ch.dataset.cat; renderInventory(); };
+    });
+  }
+
+  function matchQuery(it){
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return [it.name, it.color, it.size, it.material, CATS[it.cat].label]
+      .join(" ").toLowerCase().indexOf(q) !== -1;
+  }
+
+  function renderInventory(){
+    renderSummary();
+    renderFilters();
+    const body = $("#inventory-body");
+
+    if (items.length === 0){
+      body.innerHTML = `<div class="empty">
+        <div class="ico">🧺</div>
+        <p>아직 옷장이 비어 있어요.<br>‘정리’ 탭에서 옷을 적으면 여기에 정리돼요.</p>
+        <button class="btn btn-primary" onclick="document.querySelector('[data-tab=compose]').click()">옷 적으러 가기</button>
+      </div>`;
+      return;
+    }
+
+    let visible = items.filter(matchQuery);
+    if (filter !== "all") visible = visible.filter(i=>i.cat===filter);
+
+    if (visible.length === 0){
+      body.innerHTML = `<div class="empty"><div class="ico">🔍</div>
+        <p>조건에 맞는 옷이 없어요.<br>검색어나 필터를 바꿔보세요.</p></div>`;
+      return;
+    }
+
+    let html = "";
+    CAT_ORDER.forEach(cat=>{
+      const group = visible.filter(i=>i.cat===cat).sort(cmpSize);
+      if (!group.length) return;
+      const c = CATS[cat];
+      html += `<section class="cat-section">
+        <div class="cat-head">
+          <span class="dot" style="background:${c.dot}"></span>
+          <h3>${c.label}</h3><div class="rule"></div>
+          <span class="ct">${group.length}종 · ${totalPieces(group)}개</span>
+        </div>
+        <div class="label-grid">${group.map(tagCard).join("")}</div>
+      </section>`;
+    });
+    body.innerHTML = html;
+    body.querySelectorAll(".tag").forEach(el=>{
+      el.onclick = ()=>openSheet(el.dataset.id);
+    });
+  }
+
+  function tagCard(it){
+    const c = CATS[it.cat];
+    const flagged = it.cat==="etc" && !MATERIAL_MAP[it.material];
+    const meta = [];
+    if (it.size) meta.push(`<span class="sz" style="background:${c.dot}">${esc(it.size)}</span>`);
+    meta.push(`<span class="qty">×${it.qty}</span>`);
+    if (it.color){
+      const sw = COLOR_SWATCH[stripMod(it.color)] || "#ccc";
+      meta.push(`<span class="swatch"><i style="background:${sw}"></i>${esc(it.color)}</span>`);
+    }
+    if (it.material) meta.push(`<span>${esc(it.material)}</span>`);
+    return `<article class="tag ${flagged?"flagged":""}" data-id="${it.id}"
+        style="--accent:${c.dot}">
+      <span class="hole"></span>
+      <div class="nm">${esc(it.name)}</div>
+      <div class="meta">${meta.join("")}</div>
+      ${flagged?'<span class="flag">분류 확인</span>':""}
+    </article>`;
+  }
+  function stripMod(color){
+    let c = color;
+    COLOR_MOD.forEach(m=>{ if (c.startsWith(m)) c = c.slice(m.length); });
+    return c;
+  }
+
+  /* ---------- stats ---------- */
+  function renderStats(){
+    const body = $("#stats-body");
+    if (items.length === 0){
+      body.innerHTML = `<div class="empty"><div class="ico">📊</div>
+        <p>정리된 옷이 생기면<br>여기에 통계가 나타나요.</p></div>`;
+      return;
+    }
+    const pieces = totalPieces(items);
+    const present = CAT_ORDER.filter(c=>items.some(i=>i.cat===c))
+      .map(c=>({c, n: totalPieces(items.filter(i=>i.cat===c)), k: items.filter(i=>i.cat===c).length}))
+      .sort((a,b)=>b.n-a.n);
+    const max = Math.max(...present.map(p=>p.n));
+
+    let bars = present.map(p=>{
+      const C = CATS[p.c];
+      const w = Math.round((p.n/max)*100);
+      return `<div class="bar-row">
+        <div class="lbl"><span class="dot" style="background:${C.dot}"></span>${C.label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${C.dot}"></div></div>
+        <div class="v">${p.n}</div>
+      </div>`;
+    }).join("");
+
+    // color tally
+    const colorCount = {};
+    items.forEach(i=>{ if(i.color){ const k=stripMod(i.color); colorCount[k]=(colorCount[k]||0)+i.qty; }});
+    const topColors = Object.entries(colorCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    let colorHtml = "";
+    if (topColors.length){
+      colorHtml = `<div class="stats-card"><div class="stat-sub" style="margin-bottom:12px;font-weight:700;color:var(--ink)">색상별</div>`
+        + `<div style="display:flex;flex-wrap:wrap;gap:8px;">`
+        + topColors.map(([k,n])=>{
+            const sw = COLOR_SWATCH[k]||"#ccc";
+            return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:13px;background:#f3ede7;padding:6px 11px;border-radius:10px;">
+              <i style="width:11px;height:11px;border-radius:50%;background:${sw};box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)"></i>
+              ${esc(k)} <b style="font-family:var(--mono);color:var(--ink-soft)">${n}</b></span>`;
+          }).join("")
+        + `</div></div>`;
+    }
+
+    body.innerHTML = `
+      <div class="stats-card">
+        <div class="big-num"><b>${pieces}</b><span>총 ${items.length}종의 옷</span></div>
+        <div class="stat-sub">카테고리 ${present.length}개 · 평균 ${(pieces/items.length).toFixed(1)}개/종</div>
+        <div style="margin-top:16px;">${bars}</div>
+      </div>
+      ${colorHtml}`;
+  }
+
+  /* ---------- edit / add sheet ---------- */
+  function buildCatPick(){
+    const pick = $("#cat-pick");
+    pick.innerHTML = CAT_ORDER.map(c=>{
+      const C = CATS[c];
+      return `<button type="button" class="cat-opt" data-cat="${c}"
+        style="color:${C.dot}">
+        <span class="dot" style="background:${C.dot}"></span>${C.label}</button>`;
+    }).join("");
+    pick.querySelectorAll(".cat-opt").forEach(b=>{
+      b.onclick = ()=>{ draftCat = b.dataset.cat; syncCatPick(); };
+    });
+  }
+  function syncCatPick(){
+    document.querySelectorAll("#cat-pick .cat-opt").forEach(b=>{
+      b.setAttribute("data-on", b.dataset.cat===draftCat ? "1":"0");
+    });
+  }
+
+  function openSheet(id){
+    editingId = id || null;
+    const it = id ? items.find(i=>i.id===id) : null;
+    $("#sheet-title").textContent = id ? "항목 수정" : "직접 추가";
+    $("#btn-delete").style.display = id ? "" : "none";
+    draftCat = it ? it.cat : "top";
+    $("#f-name").value = it ? it.name : "";
+    $("#f-size").value = it ? it.size : "";
+    $("#f-qty").value = it ? it.qty : 1;
+    $("#f-color").value = it ? it.color : "";
+    $("#f-material").value = it ? it.material : "";
+    syncCatPick();
+    $("#backdrop").classList.add("show");
+    $("#sheet").classList.add("show");
+  }
+  function closeSheet(){
+    $("#backdrop").classList.remove("show");
+    $("#sheet").classList.remove("show");
+    editingId = null;
+  }
+
+  function saveSheet(){
+    const name = $("#f-name").value.trim();
+    if (!name){ toast("이름을 적어주세요"); $("#f-name").focus(); return; }
+    const data = {
+      cat: draftCat, name,
+      size: $("#f-size").value.trim(),
+      qty: Math.max(1, parseInt($("#f-qty").value,10)||1),
+      color: $("#f-color").value.trim(),
+      material: $("#f-material").value.trim(),
+    };
+    if (editingId){
+      const it = items.find(i=>i.id===editingId);
+      Object.assign(it, data);
+      toast("수정했어요");
+    } else {
+      items.push(Object.assign({
+        id:"it_"+Math.random().toString(36).slice(2,9)+Date.now().toString(36),
+        createdAt:Date.now()
+      }, data));
+      toast("추가했어요");
+    }
+    save(); closeSheet(); renderInventory();
+  }
+
+  function deleteItem(){
+    if (!editingId) return;
+    const it = items.find(i=>i.id===editingId);
+    items = items.filter(i=>i.id!==editingId);
+    save(); closeSheet(); renderInventory();
+    toast(`‘${it?it.name:"항목"}’ 삭제됨`);
+  }
+
+  /* ---------- toast ---------- */
+  let toastT = null;
+  function toast(msg){
+    const t = $("#toast");
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastT);
+    toastT = setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+
+  /* ---------- compose actions ---------- */
+  function doParse(){
+    const text = $("#raw").value;
+    const parsed = parseInput(text);
+    if (!parsed.length){ toast("정리할 내용이 없어요"); return; }
+    items = items.concat(parsed);
+    save();
+    $("#raw").value = "";
+    updateRawCount();
+    const flagged = parsed.filter(p=>p.cat==="etc").length;
+    showTab("inventory");
+    toast(flagged
+      ? `${parsed.length}개 정리 · ${flagged}개는 분류 확인`
+      : `${parsed.length}개 정리 완료`);
+  }
+  function updateRawCount(){
+    const n = $("#raw").value.split(/\r?\n/).filter(l=>l.trim()).length;
+    $("#raw-count").textContent = n + "줄";
+  }
+
+  /* ============================================================
+     WIRE UP
+     ============================================================ */
+  function init(){
+    buildCatPick();
+    document.querySelectorAll("nav.tabbar button").forEach(b=>{
+      b.onclick = ()=>showTab(b.dataset.tab);
+    });
+    $("#btn-parse").onclick = doParse;
+    $("#btn-clear").onclick = ()=>{ $("#raw").value=""; updateRawCount(); };
+    $("#raw").addEventListener("input", updateRawCount);
+    $("#btn-add").onclick = ()=>openSheet(null);
+    $("#btn-save").onclick = saveSheet;
+    $("#btn-delete").onclick = deleteItem;
+    $("#backdrop").onclick = closeSheet;
+    $("#search").addEventListener("input", e=>{ query = e.target.value.trim(); renderInventory(); });
+    document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeSheet(); });
+
+    if (!store.persistent){
+      // running inside a preview without storage — let the user know once
+      setTimeout(()=>toast("미리보기 모드: 새로고침 시 저장 안 됨"), 600);
+    }
+    updateRawCount();
+  }
+  document.addEventListener("DOMContentLoaded", init);
+
+  /* expose for tests */
+  window.Closet = {
+    parseLine, parseInput, categorize, sizeRank, cmpSize,
+    getItems: ()=>items, setItems:(a)=>{items=a;}, CATS, CAT_ORDER,
+  };
+
+})();
+</script>
+<script>
+/* PWA: register service worker (relative path -> works on GitHub Pages subpaths) */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
