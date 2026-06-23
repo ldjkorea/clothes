@@ -304,6 +304,42 @@
   }
   .toast.show{opacity:1; transform:translate(-50%,0);}
 
+  /* ---------- cloud sync ---------- */
+  .cloud-btn{
+    flex:0 0 auto; width:42px; height:42px; border-radius:13px;
+    background:var(--card); border:1px solid var(--line);
+    display:grid; place-items:center; box-shadow:0 4px 14px rgba(var(--shadow),.08);
+    transition:transform .12s ease;
+  }
+  .cloud-btn:active{transform:scale(.94);}
+  .cloud-btn.set{border-color:#bcd0ea; background:#f2f7fd;}
+  .sync-status{
+    font-size:12.5px; color:var(--ink-soft); font-family:var(--mono);
+    min-height:17px; margin:2px 2px 14px;
+  }
+  .sync-row{display:flex; gap:10px;}
+  .sync-row .btn{flex:1; font-size:14.5px;}
+  .btn-up{color:#fff; background:linear-gradient(135deg,#7fb39a,#5f9e84); box-shadow:0 8px 20px rgba(95,158,132,.3);}
+  .btn-down{color:#fff; background:linear-gradient(135deg,#8fb0d8,#6f93c6); box-shadow:0 8px 20px rgba(111,147,198,.3);}
+  .sync-row .btn[disabled]{opacity:.55; pointer-events:none;}
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:18px; padding-top:15px; border-top:1px dashed var(--stitch);
+  }
+  .toggle-row .lbl{font-size:14px; font-weight:600;}
+  .switch{
+    width:46px; height:27px; border-radius:99px; background:var(--line);
+    position:relative; transition:background .2s ease; flex:0 0 auto;
+  }
+  .switch[data-on="1"]{background:#5f9e84;}
+  .switch i{
+    position:absolute; top:3px; left:3px; width:21px; height:21px; border-radius:50%;
+    background:#fff; transition:left .2s ease; box-shadow:0 1px 3px rgba(0,0,0,.25);
+  }
+  .switch[data-on="1"] i{left:22px;}
+  .setup-link{font-size:12px; color:var(--ink-faint); margin-top:16px; line-height:1.7;}
+  .setup-link code{font-family:var(--mono); background:#f3ede7; padding:1.5px 6px; border-radius:6px; font-size:11px; color:#6f7a86;}
+
   @media (prefers-reduced-motion:reduce){
     *{animation-duration:.01ms !important; transition-duration:.01ms !important;}
   }
@@ -336,6 +372,12 @@
         <div class="sub">my wardrobe</div>
       </div>
     </div>
+    <button class="cloud-btn" id="btn-cloud" aria-label="구글 시트 동기화">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
+        <path d="M7 18a4 4 0 0 1-.6-7.95 5 5 0 0 1 9.65-1.4A3.5 3.5 0 0 1 17.5 18H7Z" stroke="#6f93c6" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M12 11v5m0 0 2-2m-2 2-2-2" stroke="#6f93c6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
   </header>
 
   <main>
@@ -446,6 +488,28 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- google sheet sync sheet -->
+  <div class="sheet" id="sync-sheet" role="dialog" aria-modal="true" aria-labelledby="sync-title">
+    <div class="grab"></div>
+    <h3 id="sync-title">구글 시트 동기화</h3>
+    <div class="field">
+      <label>Apps Script 웹 앱 URL</label>
+      <input id="f-gas" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/.../exec" />
+    </div>
+    <div class="sync-status" id="sync-status"></div>
+    <div class="sync-row">
+      <button class="btn btn-up" id="btn-cloud-save">↑ 시트에 저장</button>
+      <button class="btn btn-down" id="btn-cloud-load">↓ 시트에서 불러오기</button>
+    </div>
+    <div class="toggle-row">
+      <span class="lbl">변경할 때 자동으로 저장</span>
+      <button class="switch" id="autosync" data-on="0" role="switch" aria-label="자동 저장"><i></i></button>
+    </div>
+    <div class="setup-link">
+      설정: 구글 시트 → <code>확장 프로그램 → Apps Script</code> → 받은 <code>Code.gs</code> 붙여넣기 → <code>배포 → 새 배포 → 웹 앱</code> (액세스: 모든 사용자) → URL 복사해서 위에 붙여넣기.
+    </div>
+  </div>
 
 <script>
 "use strict";
@@ -979,6 +1043,7 @@
   function closeSheet(){
     $("#backdrop").classList.remove("show");
     $("#sheet").classList.remove("show");
+    $("#sync-sheet").classList.remove("show");
     editingId = null;
   }
 
@@ -1004,14 +1069,14 @@
       }, data));
       toast("추가했어요");
     }
-    save(); closeSheet(); renderInventory();
+    save(); closeSheet(); renderInventory(); autoPush();
   }
 
   function deleteItem(){
     if (!editingId) return;
     const it = items.find(i=>i.id===editingId);
     items = items.filter(i=>i.id!==editingId);
-    save(); closeSheet(); renderInventory();
+    save(); closeSheet(); renderInventory(); autoPush();
     toast(`‘${it?it.name:"항목"}’ 삭제됨`);
   }
 
@@ -1035,6 +1100,7 @@
     updateRawCount();
     const flagged = parsed.filter(p=>p.cat==="etc").length;
     showTab("inventory");
+    autoPush();
     toast(flagged
       ? `${parsed.length}개 정리 · ${flagged}개는 분류 확인`
       : `${parsed.length}개 정리 완료`);
@@ -1042,6 +1108,124 @@
   function updateRawCount(){
     const n = $("#raw").value.split(/\r?\n/).filter(l=>l.trim()).length;
     $("#raw-count").textContent = n + "줄";
+  }
+
+  /* ============================================================
+     GOOGLE SHEET SYNC  (via Apps Script web app)
+     ============================================================ */
+  const settingsMem = {};
+  function getSetting(k){
+    try { const v = localStorage.getItem("closet."+k); return v===null ? (settingsMem[k]||null) : v; }
+    catch(e){ return settingsMem[k]||null; }
+  }
+  function setSetting(k,v){
+    settingsMem[k]=v;
+    try { localStorage.setItem("closet."+k, v); } catch(e){}
+  }
+  function gasUrl(){ return (getSetting("gasUrl")||"").trim(); }
+
+  let autoSync = getSetting("autosync")==="1";
+  let syncing = false;
+
+  function fmtTime(d){
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  }
+  function setSyncStatus(msg){ const el=$("#sync-status"); if(el) el.textContent=msg; }
+
+  function normalizeItem(it){
+    return {
+      id: it.id || ("it_"+Math.random().toString(36).slice(2,9)+Date.now().toString(36)),
+      cat: CATS[it.cat] ? it.cat : "etc",
+      name: String(it.name||"옷"),
+      color: it.color||"",
+      size: it.size!=null ? String(it.size) : "",
+      material: it.material||"",
+      qty: Number(it.qty)||1,
+      price: Number(it.price)||0,
+      createdAt: Number(it.createdAt)||Date.now(),
+    };
+  }
+
+  async function cloudSave(){
+    const url = gasUrl();
+    if (!url){ toast("먼저 시트 URL을 입력하세요"); return; }
+    if (syncing) return;
+    syncing = true; setSyncStatus("저장 중…"); setSyncButtons(false);
+    try {
+      // text/plain => CORS preflight 회피 (GAS 웹앱 표준 패턴)
+      const res = await fetch(url, {
+        method:"POST",
+        headers:{ "Content-Type":"text/plain;charset=utf-8" },
+        body: JSON.stringify({ action:"save", items: items }),
+      });
+      const data = await res.json();
+      if (data && data.ok){
+        const now = new Date(); setSetting("lastSync", now.toISOString());
+        setSyncStatus(`저장됨 · ${data.saved}개 · ${fmtTime(now)}`);
+        toast(`시트에 ${data.saved}개 저장`);
+      } else {
+        setSyncStatus("저장 실패"); toast("저장 실패: "+((data&&data.error)||"응답 오류"));
+      }
+    } catch(e){
+      setSyncStatus("저장 실패 — 연결 확인"); toast("연결 실패 — URL·배포 설정 확인");
+    } finally { syncing=false; setSyncButtons(true); }
+  }
+
+  async function cloudLoad(){
+    const url = gasUrl();
+    if (!url){ toast("먼저 시트 URL을 입력하세요"); return; }
+    if (syncing) return;
+    if (items.length && !window.confirm("시트 내용으로 덮어쓸까요?\n이 기기의 현재 목록은 교체됩니다.")) return;
+    syncing = true; setSyncStatus("불러오는 중…"); setSyncButtons(false);
+    try {
+      const res = await fetch(url, { method:"GET" });
+      const data = await res.json();
+      if (data && data.ok && Array.isArray(data.items)){
+        items = data.items.map(normalizeItem);
+        save();
+        const now = new Date(); setSetting("lastSync", now.toISOString());
+        setSyncStatus(`불러옴 · ${items.length}개 · ${fmtTime(now)}`);
+        renderInventory();
+        toast(`시트에서 ${items.length}개 불러옴`);
+      } else {
+        setSyncStatus("불러오기 실패"); toast("불러오기 실패: "+((data&&data.error)||"응답 오류"));
+      }
+    } catch(e){
+      setSyncStatus("불러오기 실패 — 연결 확인"); toast("연결 실패 — URL·배포 설정 확인");
+    } finally { syncing=false; setSyncButtons(true); }
+  }
+
+  // debounced auto-save after a change (only if toggle on + URL set)
+  let autoT = null;
+  function autoPush(){
+    if (!autoSync || !gasUrl()) return;
+    clearTimeout(autoT);
+    autoT = setTimeout(()=>{ cloudSave(); }, 1500);
+  }
+
+  function setSyncButtons(enabled){
+    const a=$("#btn-cloud-save"), b=$("#btn-cloud-load");
+    if(a) a.disabled = !enabled;
+    if(b) b.disabled = !enabled;
+  }
+  function updateCloudUI(){
+    const has = !!gasUrl();
+    $("#btn-cloud").classList.toggle("set", has);
+    const sw = $("#autosync"); if(sw) sw.setAttribute("data-on", autoSync?"1":"0");
+    const last = getSetting("lastSync");
+    if (!$("#sync-status").textContent){
+      setSyncStatus(has
+        ? (last ? `마지막 동기화 ${fmtTime(new Date(last))}` : "저장 또는 불러오기를 눌러 시작하세요.")
+        : "URL을 입력하면 저장·불러오기가 켜져요.");
+    }
+  }
+  function openSync(){
+    $("#f-gas").value = gasUrl();
+    $("#autosync").setAttribute("data-on", autoSync?"1":"0");
+    setSyncStatus("");
+    updateCloudUI();
+    $("#backdrop").classList.add("show");
+    $("#sync-sheet").classList.add("show");
   }
 
   /* ============================================================
@@ -1062,6 +1246,20 @@
     $("#search").addEventListener("input", e=>{ query = e.target.value.trim(); renderInventory(); });
     document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeSheet(); });
 
+    // cloud sync wiring
+    $("#btn-cloud").onclick = openSync;
+    $("#f-gas").addEventListener("change", e=>{ setSetting("gasUrl", e.target.value.trim()); updateCloudUI(); });
+    $("#btn-cloud-save").onclick = cloudSave;
+    $("#btn-cloud-load").onclick = cloudLoad;
+    $("#autosync").onclick = ()=>{
+      autoSync = !autoSync;
+      setSetting("autosync", autoSync ? "1" : "0");
+      $("#autosync").setAttribute("data-on", autoSync?"1":"0");
+      toast(autoSync ? "자동 저장 켜짐" : "자동 저장 꺼짐");
+      if (autoSync) autoPush();
+    };
+    updateCloudUI();
+
     if (!store.persistent){
       // running inside a preview without storage — let the user know once
       setTimeout(()=>toast("미리보기 모드: 새로고침 시 저장 안 됨"), 600);
@@ -1074,6 +1272,7 @@
   window.Closet = {
     parseLine, parseInput, categorize, sizeRank, cmpSize, extractPrice,
     getItems: ()=>items, setItems:(a)=>{items=a;}, CATS, CAT_ORDER,
+    cloudSave, cloudLoad, normalizeItem, getSetting, setSetting,
   };
 
 })();
