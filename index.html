@@ -199,6 +199,7 @@
     padding:1px 7px; border-radius:6px; font-size:11px; letter-spacing:.02em;
   }
   .tag .qty{color:var(--ink); font-weight:600;}
+  .tag .price{color:var(--ink); font-weight:700; letter-spacing:.01em;}
   .tag .swatch{display:inline-flex; align-items:center; gap:4px;}
   .tag .swatch i{width:9px; height:9px; border-radius:50%; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
   .tag.flagged{border-style:dashed; border-color:var(--c-etc);}
@@ -347,10 +348,10 @@
         </div>
         <textarea id="raw" placeholder="옷을 한 줄에 하나씩, 대충 적어도 돼요.
 
-흰색 면 반팔티 L 3개
-검정 청바지 32 2벌
+흰색 면 반팔티 L 3개 19000원
+검정 청바지 32 2벌 5만9천원
 나이키 양말 250 5켤레
-베이지 코트 M
+베이지 울 코트 100 ₩129,000
 회색 후드티 XL
 유니클로 히트텍 화이트 L 2"></textarea>
         <div class="compose-actions">
@@ -362,11 +363,11 @@
           <div class="body">
             한 줄에 옷 하나씩 적으면 <b>색상·사이즈·수량·소재</b>를 알아서 분리하고 카테고리로 나눠요. 순서는 상관없어요.
             <div style="margin-top:9px;">
-              <span class="ex-line">흰색 면 반팔티 L 3개</span>
-              <span class="ex-line">→ 상의 · 반팔티 · L · 3개 · 흰색 · 면</span>
+              <span class="ex-line">흰색 면 반팔티 L 3개 19000원</span>
+              <span class="ex-line">→ 상의 · 반팔티 · L · 3개 · 흰색 · 면 · 19,000원</span>
             </div>
             <div style="margin-top:9px;">
-              수량은 <code>3개</code> <code>2벌</code> <code>5켤레</code> 처럼, 사이즈는 <code>L</code> <code>32</code> <code>260</code> 처럼 적으면 돼요. 정리 후에도 항목을 눌러 언제든 고칠 수 있어요.
+              수량은 <code>3개</code> <code>2벌</code> <code>5켤레</code>, 사이즈는 <code>L</code> <code>32</code> <code>260</code>, 가격은 <code>29000원</code> <code>5만9천원</code> <code>₩129,000</code> 처럼 적으면 알아서 빈칸을 채워요. 안 적은 항목은 비워두고, 나중에 눌러서 고치면 돼요.
             </div>
           </div>
         </details>
@@ -433,6 +434,10 @@
         <label>소재</label>
         <input id="f-material" type="text" placeholder="면" />
       </div>
+    </div>
+    <div class="field">
+      <label>가격 (원)</label>
+      <input id="f-price" type="number" min="0" inputmode="numeric" placeholder="예: 29000" />
     </div>
     <div class="sheet-actions">
       <button class="btn btn-save" id="btn-save">저장</button>
@@ -533,12 +538,46 @@
     return t.toUpperCase();
   }
 
+  // pull a price out of free text. handles: 29000원 / 29,000원 / ₩29000 /
+  // 3만원 / 5만9천원 / 3.5만원 / 10만 / 5천원 / bare big number (>=1000).
+  function extractPrice(line){
+    let price = null, rest = line;
+    let m;
+
+    // 만(+천) 단위 : 3만5천원, 3.5만원, 10만, 2만 원
+    if ((m = rest.match(/(\d+(?:\.\d+)?)\s*만\s*(?:(\d+)\s*천)?\s*원?/))){
+      const man = parseFloat(m[1]);
+      const cheon = m[2] ? parseInt(m[2],10) : 0;
+      price = Math.round(man*10000 + cheon*1000);
+      rest = rest.replace(m[0]," ");
+    }
+    // 천 단위 (만 없음) : 5천원, 7천
+    else if ((m = rest.match(/(\d+(?:\.\d+)?)\s*천\s*원?/))){
+      price = Math.round(parseFloat(m[1])*1000);
+      rest = rest.replace(m[0]," ");
+    }
+    // ₩29,000 / 29,000원 / 29000원
+    else if ((m = rest.match(/₩\s*([\d,]+)|([\d,]+)\s*원/))){
+      price = parseInt((m[1]||m[2]).replace(/,/g,""),10);
+      rest = rest.replace(m[0]," ");
+    }
+    // 단위 없는 큰 숫자(>=1000) : 29000, 29,000  (사이즈/수량과 안 겹침)
+    else if ((m = rest.match(/(?:^|\s)(\d{1,3}(?:,\d{3})+|\d{4,})(?=\s|$)/))){
+      const v = parseInt(m[1].replace(/,/g,""),10);
+      if (v >= 1000){ price = v; rest = rest.replace(m[1]," "); }
+    }
+
+    return { price, rest: rest.replace(/\s+/g," ").trim() };
+  }
+
   // parse a single raw line -> item object (or null)
   function parseLine(raw){
     const line = (raw||"").replace(/^[\s•\-*·\u2022]+/,"").replace(/\s+/g," ").trim();
     if (!line) return null;
 
-    let tokens = line.split(" ");
+    const pr = extractPrice(line);
+    let price = pr.price;
+    let tokens = pr.rest.split(" ");
     let qty = null, size = null, color = null, material = null;
     const numbers = [];          // {tok, val} lone numbers
     const nameToks = [];
@@ -639,6 +678,7 @@
       size: size || "",
       material: material || "",
       qty: qty || 1,
+      price: price || 0,
       createdAt: Date.now(),
     };
   }
@@ -749,7 +789,7 @@
   function matchQuery(it){
     if (!query) return true;
     const q = query.toLowerCase();
-    return [it.name, it.color, it.size, it.material, CATS[it.cat].label]
+    return [it.name, it.color, it.size, it.material, CATS[it.cat].label, it.price?String(it.price):""]
       .join(" ").toLowerCase().indexOf(q) !== -1;
   }
 
@@ -796,6 +836,8 @@
     });
   }
 
+  function won(n){ return Number(n).toLocaleString("ko-KR") + "원"; }
+
   function tagCard(it){
     const c = CATS[it.cat];
     const flagged = it.cat==="etc" && !MATERIAL_MAP[it.material];
@@ -807,6 +849,7 @@
       meta.push(`<span class="swatch"><i style="background:${sw}"></i>${esc(it.color)}</span>`);
     }
     if (it.material) meta.push(`<span>${esc(it.material)}</span>`);
+    if (it.price) meta.push(`<span class="price">${won(it.price)}</span>`);
     return `<article class="tag ${flagged?"flagged":""}" data-id="${it.id}"
         style="--accent:${c.dot}">
       <span class="hole"></span>
@@ -862,12 +905,39 @@
         + `</div></div>`;
     }
 
+    // total wardrobe value (price * qty)
+    const totalValue = items.reduce((s,i)=>s + (Number(i.price)||0)*(i.qty||1), 0);
+    const priced = items.filter(i=>i.price>0);
+    let valueHtml = "";
+    if (totalValue > 0){
+      // per-category value bars
+      const valByCat = CAT_ORDER
+        .map(c=>({c, v: items.filter(i=>i.cat===c).reduce((s,i)=>s+(Number(i.price)||0)*(i.qty||1),0)}))
+        .filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+      const vmax = Math.max(...valByCat.map(x=>x.v));
+      const vbars = valByCat.map(x=>{
+        const C = CATS[x.c];
+        const w = Math.round((x.v/vmax)*100);
+        return `<div class="bar-row">
+          <div class="lbl"><span class="dot" style="background:${C.dot}"></span>${C.label}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${C.dot}"></div></div>
+          <div class="v" style="min-width:62px">${won(x.v)}</div>
+        </div>`;
+      }).join("");
+      valueHtml = `<div class="stats-card">
+        <div class="big-num"><b style="font-size:34px">${won(totalValue)}</b></div>
+        <div class="stat-sub">옷장 총액 · 가격 입력된 ${priced.length}종 기준${priced.length<items.length?` (나머지 ${items.length-priced.length}종은 가격 미입력)`:""}</div>
+        <div style="margin-top:16px;">${vbars}</div>
+      </div>`;
+    }
+
     body.innerHTML = `
       <div class="stats-card">
         <div class="big-num"><b>${pieces}</b><span>총 ${items.length}종의 옷</span></div>
         <div class="stat-sub">카테고리 ${present.length}개 · 평균 ${(pieces/items.length).toFixed(1)}개/종</div>
         <div style="margin-top:16px;">${bars}</div>
       </div>
+      ${valueHtml}
       ${colorHtml}`;
   }
 
@@ -901,6 +971,7 @@
     $("#f-qty").value = it ? it.qty : 1;
     $("#f-color").value = it ? it.color : "";
     $("#f-material").value = it ? it.material : "";
+    $("#f-price").value = it && it.price ? it.price : "";
     syncCatPick();
     $("#backdrop").classList.add("show");
     $("#sheet").classList.add("show");
@@ -920,6 +991,7 @@
       qty: Math.max(1, parseInt($("#f-qty").value,10)||1),
       color: $("#f-color").value.trim(),
       material: $("#f-material").value.trim(),
+      price: Math.max(0, parseInt($("#f-price").value,10)||0),
     };
     if (editingId){
       const it = items.find(i=>i.id===editingId);
@@ -1000,7 +1072,7 @@
 
   /* expose for tests */
   window.Closet = {
-    parseLine, parseInput, categorize, sizeRank, cmpSize,
+    parseLine, parseInput, categorize, sizeRank, cmpSize, extractPrice,
     getItems: ()=>items, setItems:(a)=>{items=a;}, CATS, CAT_ORDER,
   };
 
